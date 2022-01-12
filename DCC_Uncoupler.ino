@@ -22,7 +22,7 @@ typedef struct
 {
  int address;
  uint8_t arduinoPin;
- bool on;         // is the uncoupler switched on
+ bool uncoupling;         // is the uncoupler switched on
  unsigned long offTime;   // time when output will be set to LOW
 }
 DCCAccessoryAddress;
@@ -74,7 +74,7 @@ void notifyDccAccTurnoutOutput(uint16_t Addr, uint8_t Direction, uint8_t OutputP
    {
       digitalWrite(uncoupler[i].arduinoPin, HIGH);
       uncoupler[i].offTime = millis() + magnetTime;    // Set the time the magnet will switch off
-      uncoupler[i].on = true;
+      uncoupler[i].uncoupling = true;
       break;
     }
  }
@@ -107,7 +107,7 @@ void loop()
   //  If the uncoupler is on, test the offTime to see if it is after that time.
   //  When it is, switch magnet off.
   for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)  {
-    if (uncoupler[i].on){
+    if (uncoupler[i].uncoupling){
       if (millis() > uncoupler[i].offTime) {
         digitalWrite(uncoupler[i].arduinoPin, LOW);
       }
