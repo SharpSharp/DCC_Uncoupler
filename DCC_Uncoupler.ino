@@ -92,6 +92,7 @@ void loop()
   for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)  {
     if (uncoupler[i].uncoupling){
       if (millis() > uncoupler[i].offTime) {
+        uncoupler[i].uncoupling = false;
         digitalWrite(uncoupler[i].arduinoPin, LOW);
       }
     }
