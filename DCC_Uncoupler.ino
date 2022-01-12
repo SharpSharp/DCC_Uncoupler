@@ -1,6 +1,15 @@
 // Kamiack LH module DCC magnets for module 1 - dcc addresses 23 24 27 28 30 31
 // based on ant-003
 
+/*  This sketch uses millis() rather than delay.
+ *  millis() returns a unsigned long value that is equal to the time in milli-seconds
+ *  that the Arduino has been switched on. Basically it is a counter that starts at zero
+ *  which increments by 1 every milli-second. A delay is initiated by added millis() to magnetTime
+ *  and storing that in offTime. offtime is then tested against millis(). When offTime is less
+ *  than millis() the output is switched off.
+ *  
+ */  
+
 const unsigned long magnetTime = 9000; // 1000 milli seconds = 1 second
 
 
@@ -13,8 +22,9 @@ typedef struct
 {
  int address;
  uint8_t arduinoPin;
- unsigned long offTime;
-}
+ bool uncoupling;         // is the uncoupler switched on
+ unsigned long offTime;   // time when output will be set to LOW
+} 
 DCCAccessoryAddress;
 
 // set number of DCC addresses
@@ -68,15 +78,17 @@ void notifyDccAccTurnoutOutput(uint16_t Addr, uint8_t Direction, uint8_t OutputP
       if (Direction)
      {
       digitalWrite(gAddresses[i].arduinoPin, HIGH);
-      delay(magnetTime);
-      digitalWrite(gAddresses[i].arduinoPin, LOW);
+      gAddresses[i].offTime = millis() + magnetTime;    // Set the time the magnet will switch off
+      gAddresses[i].uncoupling = true;
+      //digitalWrite(gAddresses[i].arduinoPin, LOW);
        break;
      }
          else
      {
       digitalWrite(gAddresses[i].arduinoPin, HIGH);
-      delay(magnetTime);
-      digitalWrite(gAddresses[i].arduinoPin, LOW);
+      gAddresses[i].offTime = millis() + magnetTime;    // Set the time the magnet will switch off
+      gAddresses[i].uncoupling = true;
+      //digitalWrite(gAddresses[i].arduinoPin, LOW);
        break;
      }
    }
@@ -105,4 +117,15 @@ void loop()
  // You MUST call the NmraDcc.process() method frequently from the Arduino loop() function
  // for correct library operation
  Dcc.process();
+
+  //  Test all addresses.
+  //  If the uncoupler is on, test the offTime to see if it is after that time.
+  //  When it is, switch magnet off.
+  for (int i = 0; i < (sizeof(gAddresses) / sizeof(DCCAccessoryAddress)); i++)  {
+    if (gAddresses[i].uncoupling){
+      if (millis() > gAddresses[i].offTime) {
+        digitalWrite(gAddresses[i].arduinoPin, LOW);
+      }
+    }
+  }
 }
