@@ -29,6 +29,22 @@ typedef struct
  {
   pinMode(arduinoPin, OUTPUT);
  }
+ 
+ void on()
+ {
+  uncoupling = true;                // change unclouping to on
+  offTime = millis() + magnetTime;  // setup time for the switch off
+  digitalWrite(arduinoPin, HIGH);   // switch output on
+ }
+
+
+ void off()
+ {
+  if (uncoupling && millis() > offTime) { // is theuncoupler on and is it after the offTime
+    uncoupling = false;                   // change uncoupling to off
+    digitalWrite(arduinoPin, LOW);        // switch output off
+  }
+ }
 }
 DCCAccessoryAddress;
 
@@ -54,9 +70,7 @@ void notifyDccAccTurnoutOutput(uint16_t Addr, uint8_t Direction, uint8_t OutputP
  {
    if (Addr == uncoupler[i].address && OutputPower)
    {
-      digitalWrite(uncoupler[i].arduinoPin, HIGH);
-      uncoupler[i].offTime = millis() + magnetTime;    // Set the time the magnet will switch off
-      uncoupler[i].uncoupling = true;
+      uncoupler[i].on();
       break;
     }
  }
@@ -86,15 +100,8 @@ void loop()
  // for correct library operation
  Dcc.process();
 
-  //  Test all addresses.
-  //  If the uncoupler is on, test the offTime to see if it is after that time.
-  //  When it is, switch magnet off.
+// check to see if it's time to switch an uncoupler off.
   for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)  {
-    if (uncoupler[i].uncoupling){
-      if (millis() > uncoupler[i].offTime) {
-        uncoupler[i].uncoupling = false;
-        digitalWrite(uncoupler[i].arduinoPin, LOW);
-      }
-    }
+    uncoupler[i].off();
   }
 }
