@@ -11,7 +11,7 @@
  */  
 
 const unsigned long magnetTime = 9000; // 1000 milli seconds = 1 second
-
+const byte NUMBER_OF_UNCOUPLERS = 6;   // number of unciuplers specified to make changing easier
 
 // Accessory Decoder - www.dccinterface.com
 
@@ -24,11 +24,11 @@ typedef struct
  uint8_t arduinoPin;
  bool uncoupling;         // is the uncoupler switched on
  unsigned long offTime;   // time when output will be set to LOW
-} 
+}
 DCCAccessoryAddress;
 
 // set number of DCC addresses
-DCCAccessoryAddress gAddresses[6];
+DCCAccessoryAddress gAddresses[NUMBER_OF_UNCOUPLERS];
 
 NmraDcc  Dcc;
 uint16_t lastAddr = 0xFFFF;
@@ -59,7 +59,7 @@ void ConfigureDecoder()
  gAddresses[5].arduinoPin = 9;
 
  // set the pin for output
- for (int i = 0; i<(int)(sizeof(gAddresses) / sizeof(gAddresses[0])); i++)
+ for (int i = 0; i<NUMBER_OF_UNCOUPLERS; i++)
  {
    pinMode(gAddresses[i].arduinoPin, OUTPUT);
  }
@@ -68,30 +68,15 @@ void ConfigureDecoder()
 // This function is called whenever a normal DCC Turnout Packet is received
 void notifyDccAccTurnoutOutput(uint16_t Addr, uint8_t Direction, uint8_t OutputPower)
 {
- for (int i = 0; i < (sizeof(gAddresses) / sizeof(DCCAccessoryAddress)); i++)
+ for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)
  {
    if (Addr == gAddresses[i].address && OutputPower)
    {
-    // xx astAddr = Addr;
-     // xx lastDirection = Direction;
-
-      if (Direction)
-     {
       digitalWrite(gAddresses[i].arduinoPin, HIGH);
       gAddresses[i].offTime = millis() + magnetTime;    // Set the time the magnet will switch off
       gAddresses[i].uncoupling = true;
-      //digitalWrite(gAddresses[i].arduinoPin, LOW);
-       break;
-     }
-         else
-     {
-      digitalWrite(gAddresses[i].arduinoPin, HIGH);
-      gAddresses[i].offTime = millis() + magnetTime;    // Set the time the magnet will switch off
-      gAddresses[i].uncoupling = true;
-      //digitalWrite(gAddresses[i].arduinoPin, LOW);
-       break;
-     }
-   }
+      break;
+    }
  }
 }
 
@@ -121,7 +106,7 @@ void loop()
   //  Test all addresses.
   //  If the uncoupler is on, test the offTime to see if it is after that time.
   //  When it is, switch magnet off.
-  for (int i = 0; i < (sizeof(gAddresses) / sizeof(DCCAccessoryAddress)); i++)  {
+  for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)  {
     if (gAddresses[i].uncoupling){
       if (millis() > gAddresses[i].offTime) {
         digitalWrite(gAddresses[i].arduinoPin, LOW);
