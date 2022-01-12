@@ -18,17 +18,29 @@ const byte NUMBER_OF_UNCOUPLERS = 6;   // number of unciuplers specified to make
 #include <NmraDcc.h>
 #include <Wire.h>
 
+// define the push button pin numbers 
+#define button1 10
+#define button2 11
+#define button3 12
+
 typedef struct
 {
  int address;
  uint8_t arduinoPin;
+ byte buttonPin;          // pin for optional push button
  bool uncoupling;         // is the uncoupler switched on
  unsigned long offTime;   // time when output will be set to LOW
 
  void setup()
  {
   pinMode(arduinoPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);  // pin for push button with pullup resistor enabled
  }
+
+void buttonPressed()
+{
+  if (digitalRead(buttonPin) == LOW) on();  // pullup keep the input HIGH when not pressed
+}
  
  void on()
  {
@@ -36,7 +48,6 @@ typedef struct
   offTime = millis() + magnetTime;  // setup time for the switch off
   digitalWrite(arduinoPin, HIGH);   // switch output on
  }
-
 
  void off()
  {
@@ -48,12 +59,12 @@ typedef struct
 }
 DCCAccessoryAddress;
 
-// set number of DCC addresses
+// set number of DCC address, uncoupling pins and optional push button pins
 DCCAccessoryAddress uncoupler[NUMBER_OF_UNCOUPLERS] = {
-  {23, 4},
-  {27, 5},
+  {23, 4, button1},
+  {27, 5, button2},
   {30, 6},
-  {31, 7},
+  {31, 7, button3},
   {24, 8},
   {28, 9}
 };
@@ -100,8 +111,10 @@ void loop()
  // for correct library operation
  Dcc.process();
 
-// check to see if it's time to switch an uncoupler off.
+
+// loop through the uncouplers
   for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)  {
-    uncoupler[i].off();
+    uncoupler[i].buttonPressed();   // check for a pressed button
+    uncoupler[i].off();             // check to see if it's time to switch an uncoupler off.
   }
 }
