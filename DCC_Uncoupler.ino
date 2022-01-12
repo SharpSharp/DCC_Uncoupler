@@ -22,13 +22,13 @@ typedef struct
 {
  int address;
  uint8_t arduinoPin;
- bool uncoupling;         // is the uncoupler switched on
+ bool on;         // is the uncoupler switched on
  unsigned long offTime;   // time when output will be set to LOW
 }
 DCCAccessoryAddress;
 
 // set number of DCC addresses
-DCCAccessoryAddress gAddresses[NUMBER_OF_UNCOUPLERS];
+DCCAccessoryAddress uncoupler[NUMBER_OF_UNCOUPLERS];
 
 NmraDcc  Dcc;
 uint16_t lastAddr = 0xFFFF;
@@ -40,28 +40,28 @@ uint8_t lastDirection = 0xFF;
 void ConfigureDecoder()
 {
  // DCC addresses corresponding to arduino pins
- gAddresses[0].address = 23;
- gAddresses[0].arduinoPin = 4;
+ uncoupler[0].address = 23;
+ uncoupler[0].arduinoPin = 4;
 
- gAddresses[1].address = 27;
- gAddresses[1].arduinoPin = 5;
+ uncoupler[1].address = 27;
+ uncoupler[1].arduinoPin = 5;
 
- gAddresses[2].address = 30;
- gAddresses[2].arduinoPin = 6;
+ uncoupler[2].address = 30;
+ uncoupler[2].arduinoPin = 6;
 
- gAddresses[3].address = 31;
- gAddresses[3].arduinoPin = 7;
+ uncoupler[3].address = 31;
+ uncoupler[3].arduinoPin = 7;
 
- gAddresses[4].address = 24;
- gAddresses[4].arduinoPin = 8;
+ uncoupler[4].address = 24;
+ uncoupler[4].arduinoPin = 8;
 
- gAddresses[5].address = 28;
- gAddresses[5].arduinoPin = 9;
+ uncoupler[5].address = 28;
+ uncoupler[5].arduinoPin = 9;
 
  // set the pin for output
  for (int i = 0; i<NUMBER_OF_UNCOUPLERS; i++)
  {
-   pinMode(gAddresses[i].arduinoPin, OUTPUT);
+   pinMode(uncoupler[i].arduinoPin, OUTPUT);
  }
 }
 
@@ -70,11 +70,11 @@ void notifyDccAccTurnoutOutput(uint16_t Addr, uint8_t Direction, uint8_t OutputP
 {
  for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)
  {
-   if (Addr == gAddresses[i].address && OutputPower)
+   if (Addr == uncoupler[i].address && OutputPower)
    {
-      digitalWrite(gAddresses[i].arduinoPin, HIGH);
-      gAddresses[i].offTime = millis() + magnetTime;    // Set the time the magnet will switch off
-      gAddresses[i].uncoupling = true;
+      digitalWrite(uncoupler[i].arduinoPin, HIGH);
+      uncoupler[i].offTime = millis() + magnetTime;    // Set the time the magnet will switch off
+      uncoupler[i].on = true;
       break;
     }
  }
@@ -107,9 +107,9 @@ void loop()
   //  If the uncoupler is on, test the offTime to see if it is after that time.
   //  When it is, switch magnet off.
   for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)  {
-    if (gAddresses[i].uncoupling){
-      if (millis() > gAddresses[i].offTime) {
-        digitalWrite(gAddresses[i].arduinoPin, LOW);
+    if (uncoupler[i].on){
+      if (millis() > uncoupler[i].offTime) {
+        digitalWrite(uncoupler[i].arduinoPin, LOW);
       }
     }
   }
