@@ -9,53 +9,49 @@
  *  than millis() the output is switched off.
  *  
  */  
-
-const unsigned long magnetTime = 9000; // 1000 milli seconds = 1 second
-const byte NUMBER_OF_UNCOUPLERS = 6;   // number of unciuplers specified to make changing easier
-
-// Accessory Decoder - www.dccinterface.com
-
 #include <NmraDcc.h>
-#include <Wire.h>
 
 // define the push button pin numbers 
 #define button1 10
 #define button2 11
 #define button3 12
 
+const unsigned long magnetTime = 9000; // 1000 milli seconds = 1 second
+const byte NUMBER_OF_UNCOUPLERS = 6;   // number of unciuplers specified to make changing easier
+
 typedef struct
 {
- int address;
- uint8_t arduinoPin;
- byte buttonPin;          // pin for optional push button
- bool uncoupling;         // is the uncoupler switched on
- unsigned long offTime;   // time when output will be set to LOW
+  int dccAddress;
+  byte uncouplerPin;
+  byte buttonPin;          // pin for optional push button
+  bool uncoupling;         // is the uncoupler switched on
+  unsigned long offTime;   // time when output will be set to LOW
 
- void setup()
- {
-  pinMode(arduinoPin, OUTPUT);
-  pinMode(buttonPin, INPUT_PULLUP);  // pin for push button with pullup resistor enabled
- }
-
-void buttonPressed()
-{
-  if (digitalRead(buttonPin) == LOW) on();  // pullup keep the input HIGH when not pressed
-}
- 
- void on()
- {
-  uncoupling = true;                // change unclouping to on
-  offTime = millis() + magnetTime;  // setup time for the switch off
-  digitalWrite(arduinoPin, HIGH);   // switch output on
- }
-
- void off()
- {
-  if (uncoupling && millis() > offTime) { // is theuncoupler on and is it after the offTime
-    uncoupling = false;                   // change uncoupling to off
-    digitalWrite(arduinoPin, LOW);        // switch output off
+  void setup()
+  {
+    pinMode(uncouplerPin, OUTPUT);
+    pinMode(buttonPin, INPUT_PULLUP);  // pin for push button with pullup resistor enabled
   }
- }
+
+  void buttonPressed()
+  {
+    if (digitalRead(buttonPin) == LOW) on();  // pullup keeps the input HIGH when not pressed
+  }
+ 
+  void on()
+  {
+    uncoupling = true;                // change unclouping to on
+    offTime = millis() + magnetTime;  // setup time for the switch off
+    digitalWrite(uncouplerPin, HIGH);   // switch output on
+  }
+
+  void off()
+  {
+    if (uncoupling && millis() > offTime) { // is theuncoupler on and is it after the offTime
+      uncoupling = false;                   // change uncoupling to off
+      digitalWrite(uncouplerPin, LOW);        // switch output off
+   }
+  }
 }
 DCCAccessoryAddress;
 
@@ -70,47 +66,39 @@ DCCAccessoryAddress uncoupler[NUMBER_OF_UNCOUPLERS] = {
 };
 
 NmraDcc  Dcc;
-uint16_t lastAddr = 0xFFFF;
-uint8_t lastDirection = 0xFF;
-
 
 // This function is called whenever a normal DCC Turnout Packet is received
-void notifyDccAccTurnoutOutput(uint16_t Addr, uint8_t Direction, uint8_t OutputPower)
+// It returns the Acc Address (1 to 2044) 
+// The direction 0 (close) or 1 (throw)
+// The output Power true  (is it on)
+void notifyDccAccTurnoutOutput(uint16_t receivedAddress, uint8_t direction, uint8_t outputPower)
 {
- for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)
- {
-   if (Addr == uncoupler[i].address && OutputPower)
-   {
+  for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)
+  {
+    if (receivedAddress == uncoupler[i].dccAddress)
+    {
       uncoupler[i].on();
       break;
     }
- }
-}
-
-void setupDCCDecoder()
-{
- // Setup which External Interrupt, the Pin it's associated with that we're using and enable the Pull-Up 
- Dcc.pin(0, 2, 1);
-
- // Call the main DCC Init function to enable the DCC Receiver
- Dcc.init(MAN_ID_DIY, 10, CV29_ACCESSORY_DECODER | CV29_OUTPUT_ADDRESS_MODE, 0);
-
+  }
 }
 
 void setup()
 {
- setupDCCDecoder();
- for (int i = 0; i<NUMBER_OF_UNCOUPLERS; i++) {
-  uncoupler[i].setup();
- }
+  // Setup which External Interrupt, the Pin it's associated with that we're using and enable the Pull-Up 
+  Dcc.pin(0, 2, 1);
+  // Call the main DCC Init function to enable the DCC Receiver
+  Dcc.init(MAN_ID_DIY, 10, CV29_ACCESSORY_DECODER | CV29_OUTPUT_ADDRESS_MODE, 0);
+
+  for (int i = 0; i<NUMBER_OF_UNCOUPLERS; i++) 
+  {
+    uncoupler[i].setup();
+  }
 }
 
 void loop()
 {
- // You MUST call the NmraDcc.process() method frequently from the Arduino loop() function
- // for correct library operation
- Dcc.process();
-
+  Dcc.process();
 
 // loop through the uncouplers
   for (int i = 0; i < NUMBER_OF_UNCOUPLERS; i++)  {
